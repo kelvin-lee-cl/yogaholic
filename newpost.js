@@ -115,3 +115,69 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     loadPortfolioPosts();
 });
+
+// Initialize filters-content container references
+const indexFiltersContent = document.querySelector('.filters-content .row.portfolio-grid');
+const adminFiltersContent = document.querySelector('.filters-content .row.portfolio-grid');
+
+// Function to render Instagram post blocks
+function renderInstagramPost(doc) {
+    const postData = doc.data();
+    const html = `
+        <div class="col-lg-4 col-md-6 all ${postData.category}">
+            <div class="portfolio_box">
+                <div class="single_portfolio">
+                    <blockquote class="instagram-media" 
+                        data-instgrm-permalink="${postData.instagramUrl}"
+                        data-instgrm-version="14"
+                        style="background:#FFF; border:0; border-radius:3px; box-shadow:0 0 1px 0 rgba(0,0,0,0.5),0 1px 10px 0 rgba(0,0,0,0.15); margin: 1px; max-width:540px; min-width:326px; padding:0; width:99.375%; width:-webkit-calc(100% - 2px); width:calc(100% - 2px);">
+                        ${postData.embedCode}
+                    </blockquote>
+                    <script async src="//www.instagram.com/embed.js"></script>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Add to appropriate container based on which page we're on
+    const container = window.location.pathname.includes('admin.html') ?
+        adminFiltersContent : indexFiltersContent;
+
+    if (container) {
+        container.insertAdjacentHTML('beforeend', html);
+    }
+}
+
+// Real-time listener for posts collection
+db.collection('posts').orderBy('timestamp', 'desc').onSnapshot(snapshot => {
+    // Clear existing content
+    if (indexFiltersContent) indexFiltersContent.innerHTML = '';
+    if (adminFiltersContent) adminFiltersContent.innerHTML = '';
+
+    snapshot.forEach(doc => {
+        renderInstagramPost(doc);
+    });
+});
+
+// Only add form submission handling if we're on admin.html
+if (window.location.pathname.includes('admin.html')) {
+    const form = document.querySelector('#add-post-form');
+    if (form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const instagramUrl = form.instagramUrl.value;
+            const embedCode = form.embedCode.value;
+            const category = form.category.value;
+
+            await db.collection('posts').add({
+                instagramUrl,
+                embedCode,
+                category,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            form.reset();
+        });
+    }
+}
