@@ -1203,12 +1203,13 @@
                 </div>
                 <div class="form-group">
                     <label>類別:</label>
-                    <select class="form-control" id="newPostType">
+                    <select class="form-control" id="newPostType" multiple>
                         <option value="info_ig">學習</option>
                         <option value="book">繪本</option>
                         <option value="workshop">工作坊</option>
                         <option value="special">節日優惠</option>
                     </select>
+                    <small class="form-text text-muted">按住 Ctrl (Windows) 或 Command (Mac) 來選擇多個類別</small>
                 </div>
                 <button class="btn btn-primary mt-2" onclick="addNewPost()">新增</button>
             </div>
@@ -1267,25 +1268,33 @@
 
         // Add new post
         function addNewPost() {
-            const iframeCode = document.getElementById('newIframeCode').value;
-            const postType = document.getElementById('newPostType').value;
+            const iframe = document.getElementById('newIframeCode').value;
+            const typeSelect = document.getElementById('newPostType');
 
-            if (!iframeCode) {
-                alert('請輸入 Instagram 嵌入碼');
+            // Get all selected options and join their values with spaces
+            const selectedTypes = Array.from(typeSelect.selectedOptions)
+                .map(option => option.value)
+                .join(' ');
+
+            if (!iframe || !selectedTypes) {
+                alert('請填寫所有欄位');
                 return;
             }
 
             db.collection('instagram_posts').add({
-                iframe: iframeCode,
-                type: postType,
+                iframe: iframe,
+                type: selectedTypes,  // This will now be a space-separated string of types
                 timestamp: firebase.firestore.FieldValue.serverTimestamp()
             }).then(() => {
-                alert('貼文已新增');
                 document.getElementById('newIframeCode').value = '';
+                typeSelect.value = '';  // Clear selection
                 loadExistingPosts();
+                alert('貼文已新增');
             }).catch((error) => {
-                alert('錯誤: ' + error);
+                console.error('Error adding post: ', error);
+                alert('新增貼文時發生錯誤');
             });
+            loadPortfolioPosts();
         }
 
         // Delete post
